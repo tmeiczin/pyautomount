@@ -1,0 +1,2 @@
+# pyautomount
+Python Automounter
