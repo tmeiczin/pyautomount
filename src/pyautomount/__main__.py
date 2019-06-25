@@ -52,7 +52,8 @@ class AutoMount(object):
         self.interval = 30
 
         try:
-            self.log = open(log, 'a')
+            if log:
+                self.log = open(log, 'a')
         except IOError:
             pass
 
