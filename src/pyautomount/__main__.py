@@ -58,10 +58,12 @@ class AutoMount(object):
             pass
 
     def log_error(self, m):
-        self.log.write('ERROR: %s' % (m,))
+        if self.log:
+            self.log.write('ERROR: %s' % (m,))
 
     def log_info(self, m):
-        self.log.write('INFO: %s' % (m,))
+        if self.log:
+            self.log.write('INFO: %s' % (m,))
 
     def match_rules(self, device):
         if not self.rules:
@@ -134,5 +136,5 @@ def main():
         except IOError:
             print('could not load rules file %s\n', args.rule)
 
-    a = AutoMount(rules=rules)
+    a = AutoMount(rules=rules, log=args.log)
     a.start_monitor()
