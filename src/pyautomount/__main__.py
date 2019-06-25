@@ -4,7 +4,6 @@ import os
 import pyudev
 import re
 import subprocess
-import sys
 import time
 
 
@@ -48,9 +47,20 @@ def unmount(dev, name):
 
 class AutoMount(object):
 
-    def __init__(self, rules=None):
+    def __init__(self, rules=None, log=None):
         self.rules = rules or {}
         self.interval = 30
+
+        try:
+            self.log = open(log, 'a')
+        except IOError:
+            pass
+
+    def log_error(self, m):
+        self.log.write('ERROR: %s' % (m,))
+
+    def log_info(self, m):
+        self.log.write('INFO: %s' % (m,))
 
     def match_rules(self, device):
         if not self.rules:
@@ -63,14 +73,13 @@ class AutoMount(object):
                 if not m:
                     break
             else:
-                sys.stdout.write('matched %s\n' % (rule,))
+                self.log_info('matched %s\n' % (rule,))
                 return True
 
         return match
 
     def handler(self, device):
         action = device.action
-        dev_links = device.properties['DEVLINKS']
         dev_name = device.properties['DEVNAME']
         label = device.properties['ID_FS_LABEL']
 
@@ -78,9 +87,9 @@ class AutoMount(object):
             if self.match_rules(device):
                 result = mount(dev_name, label)
                 if result is True:
-                    sys.stdout.write('mounted %s\n' % (dev_name,))
+                    self.log_info('mounted %s\n' % (dev_name,))
                 else:
-                    sys.sterr.write(result)
+                    self.log_error(result)
 
                 return
 
@@ -88,9 +97,9 @@ class AutoMount(object):
             if self.match_rules(device):
                 result = unmount(dev_name, label)
                 if result is True:
-                    sys.stdout.write('unmounted %s\n' % (dev_name,))
+                    self.log_info('unmounted %s\n' % (dev_name,))
                 else:
-                    sys.sterr.write(result)
+                    self.log_error(result)
 
                 return
 
@@ -113,15 +122,16 @@ def main():
     rules = {}
     parser = argparse.ArgumentParser()
     parser.add_argument('--rules', help='rules', default=None)
+    parser.add_argument('--log', help='log', default=None)
     args = parser.parse_args()
 
     if args.rules:
         try:
             data = open(args.rules, 'r').read()
             rules = json.loads(data).get('rules', {})
-            sys.stdout.write('read rules %s\n' % (args.rules))
+            print('read rules %s\n' % (args.rules))
         except IOError:
-            sys.stderr.write('could not load rules file %s\n', args.rule)
+            print('could not load rules file %s\n', args.rule)
 
     a = AutoMount(rules=rules)
     a.start_monitor()
